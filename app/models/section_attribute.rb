@@ -1,4 +1,4 @@
 class SectionAttribute < ActiveRecord::Base
   belongs_to :section
-  attr_accessible :description, :type
+  attr_accessible :name, :description
 end

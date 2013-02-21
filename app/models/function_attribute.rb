@@ -1,4 +1,4 @@
 class FunctionAttribute < ActiveRecord::Base
   belongs_to :function
-  attr_accessible :description, :parameter, :type
+  attr_accessible :name, :param, :description
 end
