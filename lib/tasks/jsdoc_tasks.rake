@@ -11,10 +11,30 @@ def parseFunctionAttr(attrib, val, function)
 end
 
 def nameAndStoreFunction(head, function)
-  if head
+  if head.is_a?(String)
     function.name = head
-    function.save!
+    createOrUpdateFunction(function)
+  elsif head.is_a?(Array)
+    head.each do |fname|
+      new_func = function.dup
+      new_func.name = fname
+      createOrUpdateFunction(new_func)
+    end
   end
+end
+
+def createOrUpdateFunction(function)
+  # Saving manually created info :)
+  functionDB = Function.find_by_name_and_section_id(function.name,function.section_id)
+  if functionDB
+    function.content = functionDB.content
+    functionDB.destroy!
+  end
+  function.save!
+end
+
+def arraify(str)
+  str.gsub(/["' ]/,"").split(",") if str
 end
 
 def findHeaderLine(lines, start, debug)
@@ -27,7 +47,19 @@ def findHeaderLine(lines, start, debug)
   if lines[start]
     puts "Found function header line: " + lines[start] if debug
     puts "Extracting function name..." if debug
-    var regex_function_name = /^[^\w]*(?:(?:var\s+(\w+))|(?:(\w+)\s*:))(?:\s*=\s*function)/
+    regex_function_name = /^[^\w]*(?:(?:(?:var )?\s*)(\S+)\s*[=:])(?:\s*function)|each\(\[(.*)\].*function/
+    fname = regex_function_name.match(lines[start])
+    puts fname
+    if fname
+      if fname[1]
+        funcname = fname[1]
+      else
+        funcname = arraify(fname[2])
+      end
+      puts funcname if debug
+    else
+      puts "Name not found..." if debug
+    end
   else
     false
   end
@@ -36,11 +68,11 @@ end
 def parseFile(file, debug)
   #Creating or updating section
   filename = File.basename(file).split(".js")[0]
-  # sectionDB = Section.find_or_create_by_name(filename)
+  sectionDB = Section.find_or_create_by_name(filename)
   functionDB = nil
 
   #Cleaning the section attributes (as we are creating new ones)
-  # sectionDB.section_attributes.destroy_all
+  sectionDB.section_attributes.destroy_all
 
   lines = File.open(file).readlines
   block = nil
@@ -63,15 +95,14 @@ def parseFile(file, debug)
         block = 'sec'
       else
         block = 'fun'
-        # functionDB = Function.new
-        # functionDB.section = sectionDB
+        functionDB = Function.new
+        functionDB.section = sectionDB
       end
       puts "Block type: #{block}"
 
     elsif line =~ regex_endblock
       puts "**** Ending block" if debug
       nameAndStoreFunction(findHeaderLine(lines, index+1, debug), functionDB) if block == 'fun'
-      return 1 if block == 'fun'  #ToDo: Delete it
       block = false
 
     elsif block
@@ -79,11 +110,11 @@ def parseFile(file, debug)
         if desc
           puts "Description finished: " if debug
           desc = false
-          # (block == 'sec') ? sectionDB.update_column(:description, description) : functionDB.update_column(:description, description)
+          (block == 'sec') ? sectionDB.update_column(:description, description) : functionDB.update_column(:description, description)
           puts description if debug
         else
           puts "parsing " + b[0] if debug
-          # (block == 'sec') ? parseSectionAttr(b[1], b[2], sectionDB) : parseFunctionAttr(b[1], b[2], functionDB)
+          (block == 'sec') ? parseSectionAttr(b[1], b[2], sectionDB) : parseFunctionAttr(b[1], b[2], functionDB)
         end
       elsif desc
         d = regex_descline.match(line)[1]
