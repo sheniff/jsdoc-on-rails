@@ -11,42 +11,42 @@
 #
 # It's strongly recommended to check this file into your version control system.
 
-ActiveRecord::Schema.define(:version => 20130221185750) do
+ActiveRecord::Schema.define(:version => 20130223002240) do
 
-  create_table "function_attributes", :force => true do |t|
+  create_table "jsdoc_function_attributes", :force => true do |t|
     t.string   "name"
     t.string   "param"
     t.string   "description"
-    t.integer  "function_id"
-    t.datetime "created_at",  :null => false
-    t.datetime "updated_at",  :null => false
+    t.integer  "jsdoc_function_id"
+    t.datetime "created_at",        :null => false
+    t.datetime "updated_at",        :null => false
   end
 
-  add_index "function_attributes", ["function_id"], :name => "index_function_attributes_on_function_id"
+  add_index "jsdoc_function_attributes", ["jsdoc_function_id"], :name => "index_function_attributes_on_function_id"
 
-  create_table "functions", :force => true do |t|
+  create_table "jsdoc_functions", :force => true do |t|
     t.string   "name"
     t.text     "description"
     t.text     "content"
     t.text     "code"
-    t.integer  "section_id"
-    t.datetime "created_at",  :null => false
-    t.datetime "updated_at",  :null => false
+    t.integer  "jsdoc_section_id"
+    t.datetime "created_at",       :null => false
+    t.datetime "updated_at",       :null => false
   end
 
-  add_index "functions", ["section_id"], :name => "index_functions_on_section_id"
+  add_index "jsdoc_functions", ["jsdoc_section_id"], :name => "index_functions_on_section_id"
 
-  create_table "section_attributes", :force => true do |t|
+  create_table "jsdoc_section_attributes", :force => true do |t|
     t.string   "name"
     t.string   "description"
-    t.integer  "section_id"
-    t.datetime "created_at",  :null => false
-    t.datetime "updated_at",  :null => false
+    t.integer  "jsdoc_section_id"
+    t.datetime "created_at",       :null => false
+    t.datetime "updated_at",       :null => false
   end
 
-  add_index "section_attributes", ["section_id"], :name => "index_section_attributes_on_section_id"
+  add_index "jsdoc_section_attributes", ["jsdoc_section_id"], :name => "index_section_attributes_on_section_id"
 
-  create_table "sections", :force => true do |t|
+  create_table "jsdoc_sections", :force => true do |t|
     t.string   "name"
     t.text     "description"
     t.datetime "created_at",  :null => false

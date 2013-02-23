@@ -1,12 +1,13 @@
 def parseSectionAttr(attrib, val, section)
-  sa = SectionAttribute.new(name: attrib, description: val)
-  sa.section = section
+  sa = JsdocSectionAttribute.new(name: attrib, description: val)
+  sa.jsdoc_section = section
   sa.save!
 end
 
 def parseFunctionAttr(attrib, val, function)
-  fa = FunctionAttribute.new(name: attrib, description: val)
-  fa.function = function
+  split_param = /^(?:{(.*)})?\s*(.*)/.match(val)
+  fa = JsdocFunctionAttribute.new(name: attrib, param: split_param[1], description: split_param[2])
+  fa.jsdoc_function = function
   fa.save!
 end
 
@@ -20,17 +21,20 @@ def nameAndStoreFunction(head, function)
       new_func.name = fname
       createOrUpdateFunction(new_func)
     end
+    function.destroy #Destroying original, as we have one for each copy
+  else
+    function.destroy
   end
 end
 
 def createOrUpdateFunction(function)
-  # Saving manually created info :)
-  functionDB = Function.find_by_name_and_section_id(function.name,function.section_id)
+  # Keeping manually created info :)
+  functionDB = JsdocFunction.find_by_name_and_jsdoc_section_id(function.name,function.jsdoc_section_id)
   if functionDB
     function.content = functionDB.content
-    functionDB.destroy!
+    functionDB.delete
   end
-  function.save!
+  function.save
 end
 
 def arraify(str)
@@ -44,35 +48,34 @@ def findHeaderLine(lines, start, debug)
     start += 1
   end
 
-  if lines[start]
-    puts "Found function header line: " + lines[start] if debug
-    puts "Extracting function name..." if debug
-    regex_function_name = /^[^\w]*(?:(?:(?:var )?\s*)(\S+)\s*[=:])(?:\s*function)|each\(\[(.*)\].*function/
-    fname = regex_function_name.match(lines[start])
-    puts fname
-    if fname
-      if fname[1]
-        funcname = fname[1]
-      else
-        funcname = arraify(fname[2])
-      end
-      puts funcname if debug
-    else
-      puts "Name not found..." if debug
-    end
+  return false if not lines[start]
+
+  puts "Found function header line: " + lines[start] if debug
+  puts "Extracting function name..." if debug
+  regex_function_name = /^\s*(?:(?:(?:var )?\s*)([$.\w]+).*[=:])(?:.*function)|each\(\[(.*)\].*function/
+  fname = regex_function_name.match(lines[start])
+  puts fname if debug
+
+  return false if not fname
+
+  if fname[1]
+    funcname = fname[1]
   else
-    false
+    funcname = arraify(fname[2])
   end
+
+  puts funcname if debug
+  return funcname
 end
 
 def parseFile(file, debug)
   #Creating or updating section
   filename = File.basename(file).split(".js")[0]
-  sectionDB = Section.find_or_create_by_name(filename)
+  sectionDB = JsdocSection.find_or_create_by_name(filename)
   functionDB = nil
 
   #Cleaning the section attributes (as we are creating new ones)
-  sectionDB.section_attributes.destroy_all
+  sectionDB.jsdoc_section_attributes.destroy_all
 
   lines = File.open(file).readlines
   block = nil
@@ -95,10 +98,9 @@ def parseFile(file, debug)
         block = 'sec'
       else
         block = 'fun'
-        functionDB = Function.new
-        functionDB.section = sectionDB
+        functionDB = JsdocFunction.new
+        functionDB.jsdoc_section = sectionDB
       end
-      puts "Block type: #{block}"
 
     elsif line =~ regex_endblock
       puts "**** Ending block" if debug
@@ -110,7 +112,7 @@ def parseFile(file, debug)
         if desc
           puts "Description finished: " if debug
           desc = false
-          (block == 'sec') ? sectionDB.update_column(:description, description) : functionDB.update_column(:description, description)
+          (block == 'sec') ? sectionDB.update_column(:description, description) : functionDB.description = description
           puts description if debug
         else
           puts "parsing " + b[0] if debug
@@ -142,13 +144,18 @@ namespace :jsdoc do
   desc "Generate documentation from a given SRC"
   task :generate => :environment do
     src = ENV['SRC']
-    debug = ENV['DEBUG'].downcase == 'true'
+    debug = ENV['DEBUG']
 
     if src.blank?
       puts "SRC with javascript files not provided, please write 'rake jsdoc:generate SRC=route/to/my/js'"
       return 1
     end
 
+    if debug
+      debug = debug.downcase == 'true'
+    end
+
     generateDoc(src, debug)
+    puts " * Doc generated and stored in JSDoc_* DB tables"
   end
 end
