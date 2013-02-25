@@ -1,10 +1,8 @@
-JSDoc to Rails
-###
+# JSDoc to Rails
 
 Automatic JSDoc documentation generator written in an for Ruby on Rails
 
-Installation
-###
+## Installation
 
 * Install gem (WIP)
 
