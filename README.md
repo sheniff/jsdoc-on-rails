@@ -6,27 +6,27 @@ Automatic JSDoc documentation generator written in an for Ruby on Rails
 
 * Edit your Gemfile and add this line
 
-´´´
+```
 gem 'jsdoc-on-rails', :git => 'git://github.com/sheniff/jsdoc-on-rails.git'
-´´´
+```
 
 * Then run
 
-´´´
+```
 bundle install
-´´´
+```
 
 * Next you need to install the migrations into your main application.
 
-´´´
+```
 rake jsdoc-on-rails:install:migrations
-´´´
+```
 
 * Migrate your database
 
-´´´
+```
 rake db:migrate
-´´´
+```
 
 ## Use
 
